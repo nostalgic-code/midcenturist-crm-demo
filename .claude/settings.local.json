@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/sylon/OneDrive/Desktop/midcenturist/app/**)",
+      "Bash(mkdir -p 'c:/Users/sylon/Downloads/midcenturist_cms_build/src/app/api/auth/\\\\[...nextauth\\\\]')",
+      "Bash(mkdir -p 'c:/Users/sylon/Downloads/midcenturist_cms_build/src/app/\\\\\\(cms\\\\\\)/products/\\\\[id\\\\]')",
+      "Bash(cp 'c:/Users/sylon/OneDrive/Desktop/midcenturist/app/src/app/api/auth/[...nextauth]/route.ts' 'c:/Users/sylon/Downloads/midcenturist_cms_build/src/app/api/auth/[...nextauth]/route.ts')",
+      "Bash(cp 'c:/Users/sylon/OneDrive/Desktop/midcenturist/app/src/app/\\(cms\\)/products/[id]/page.tsx' 'c:/Users/sylon/Downloads/midcenturist_cms_build/src/app/\\(cms\\)/products/[id]/page.tsx')",
+      "Bash(powershell -Command ':*)",
+      "Read(//c/Users/sylon/OneDrive/Desktop/midcenturist/**)",
+      "Read(//c/Users/sylon/**)",
+      "Bash(powershell -Command 'Get-ChildItem '\\\\''c:/Users/sylon/OneDrive/Desktop/midcenturist/'\\\\'' -Recurse | Where-Object { $_.Name -match '\\\\''logo'\\\\'' } | Select-Object FullName')",
+      "Bash(powershell -Command \"Get-ChildItem 'c:/Users/sylon/OneDrive/Desktop/midcenturist/app/public/logo' | Select-Object Name, FullName\")",
+      "Bash(powershell -Command \"Get-ChildItem 'c:/Users/sylon/OneDrive/Desktop/midcenturist/app/public/' -Recurse | Select-Object FullName\")",
+      "Bash(powershell -Command \"Get-ChildItem 'c:/Users/sylon/OneDrive/Desktop/midcenturist/app/public/' -Recurse -File | Select-Object FullName, Length\")",
+      "Bash(npx shadcn@latest init --defaults)",
+      "Bash(npx shadcn@latest add sidebar button badge card table input select dialog sheet separator avatar dropdown-menu tooltip label textarea switch tabs scroll-area --yes)",
+      "Bash(npx shadcn@latest add alert breadcrumb skeleton --yes)",
+      "Bash(powershell -Command \"Get-ChildItem 'c:/Users/sylon/OneDrive/Desktop/midcenturist' -Recurse -Filter '*.jpg' | Select-Object FullName\")",
+      "Bash(powershell -Command \"Get-ChildItem 'c:/Users/sylon/OneDrive/Desktop/midcenturist/app/src/app' -Recurse | Select-Object FullName, Name\")",
+      "Bash(powershell -Command \"Get-ChildItem 'c:/Users/sylon/OneDrive/Desktop/midcenturist/app/public' -Recurse -File | Select-Object FullName\")",
+      "Bash(powershell -Command \"Get-ChildItem 'c:/Users/sylon/Downloads/midcenturist_cms_build' -Recurse -Filter '*.jpg' | Select-Object FullName\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/dashboard)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/products)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/orders)",
+      "Bash(grep -l \"base-ui\" \"c:/Users/sylon/Downloads/midcenturist_cms_build/src/components/ui/\"*.tsx)",
+      "Bash(xargs grep:*)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\sylon\\OneDrive\\Desktop\\midcenturist\\app"
+    ]
+  }
+}
