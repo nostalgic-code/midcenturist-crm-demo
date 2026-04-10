@@ -1,12 +1,15 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBell, faPlus } from '@fortawesome/free-solid-svg-icons'
+import { faBell, faPlus, faBars } from '@fortawesome/free-solid-svg-icons'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import CMSSidebar from './Sidebar'
 
 const pageTitles: Record<string, string> = {
   '/dashboard':  'Dashboard',
@@ -33,10 +36,25 @@ interface TopbarProps {
 export default function Topbar({ unreadEnquiries = 0 }: TopbarProps) {
   const pathname = usePathname()
   const title    = getTitle(pathname)
+  const [open, setOpen] = useState(false)
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-card px-6">
-      <h1 className="text-lg font-semibold">{title}</h1>
+    <header className="flex h-16 shrink-0 items-center gap-4 border-b bg-card px-4 sm:px-6">
+      {/* Mobile menu button */}
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild className="lg:hidden">
+          <Button variant="ghost" size="icon">
+            <FontAwesomeIcon icon={faBars} className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-64 p-0">
+          <div onClick={() => setOpen(false)}>
+            <CMSSidebar />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <h1 className="text-base sm:text-lg font-semibold truncate">{title}</h1>
 
       <div className="ml-auto flex items-center gap-2">
         {unreadEnquiries > 0 && (
@@ -49,7 +67,7 @@ export default function Topbar({ unreadEnquiries = 0 }: TopbarProps) {
             </Button>
           </Link>
         )}
-        <Button asChild size="sm">
+        <Button asChild size="sm" className="hidden sm:flex">
           <Link href="/products/new">
             <FontAwesomeIcon icon={faPlus} className="mr-1.5 h-3 w-3" />
             Add Product

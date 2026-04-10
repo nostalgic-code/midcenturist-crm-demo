@@ -23,9 +23,9 @@ export default async function DashboardPage() {
   ])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Stat cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Products Live"           value={stats?.totalProductsLive ?? 0}     iconDef={faBoxesStacked} trend="Updated live" />
         <StatCard label="Orders This Month"       value={stats?.ordersThisMonth ?? 0}        iconDef={faBagShopping}  trendUp />
         <StatCard label="Unread Enquiries"        value={stats?.unreadEnquiries ?? 0}        iconDef={faEnvelope}     trend={stats?.unreadEnquiries ? 'Needs attention' : undefined} />
@@ -37,27 +37,30 @@ export default async function DashboardPage() {
         <Button asChild variant="outline" size="sm">
           <Link href="/products/new">
             <FontAwesomeIcon icon={faPlus} className="mr-1.5 h-3 w-3" />
-            Add New Product
+            <span className="hidden sm:inline">Add New Product</span>
+            <span className="sm:hidden">Add Product</span>
           </Link>
         </Button>
         <Button asChild variant="outline" size="sm">
           <Link href="/instagram">
             <FontAwesomeIcon icon={faInstagram} className="mr-1.5 h-3 w-3" />
-            Instagram Drafts
+            <span className="hidden sm:inline">Instagram Drafts</span>
+            <span className="sm:hidden">Instagram</span>
           </Link>
         </Button>
         <Button asChild variant="outline" size="sm">
           <Link href="/enquiries">
             <FontAwesomeIcon icon={faEnvelope} className="mr-1.5 h-3 w-3" />
-            Enquiries
+            <span className="hidden sm:inline">Enquiries</span>
+            <span className="sm:hidden">Inbox</span>
             {(stats?.unreadEnquiries ?? 0) > 0 && (
-              <Badge className="ml-1.5 h-4 px-1.5 text-[10px]">{stats?.unreadEnquiries}</Badge>
+              <Badge className="ml-1.5 h-4 px-1.5 text-[9px]">{stats?.unreadEnquiries}</Badge>
             )}
           </Link>
         </Button>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
         {/* Recent activity */}
         <Card>
           <CardHeader className="pb-3">
