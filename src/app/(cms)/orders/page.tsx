@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faDownload } from '@fortawesome/free-solid-svg-icons'
 import OrderTable from '@/components/cms/OrderTable'
-import { getOrders, updateOrderStatus, exportOrdersCSV } from '@/lib/api'
-import type { Order } from '@/types/cms'
+import { getOrders, updateOrderStatus, exportOrdersCSV, type Order } from '@/lib/api'
 
 export default function OrdersPage() {
   const [orders, setOrders]   = useState<Order[]>([])
@@ -14,10 +14,14 @@ export default function OrdersPage() {
   const [status, setStatus]   = useState('')
   const [fulfilment, setFulfilment] = useState('')
 
+  const { data: session } = useSession()
+  const token = (session as any)?.apiToken
+
   const load = useCallback(async () => {
+    if (!token) return
     setLoading(true)
     try {
-      const res = await getOrders({ status, fulfilmentType: fulfilment })
+      const res = await getOrders(token, { status, fulfilment })
       setOrders(res.orders)
       setTotal(res.total)
     } catch {
@@ -25,12 +29,13 @@ export default function OrdersPage() {
     } finally {
       setLoading(false)
     }
-  }, [status, fulfilment])
+  }, [token, status, fulfilment])
 
   useEffect(() => { load() }, [load])
 
   const handleStatusChange = async (id: string, s: Order['status']) => {
-    await updateOrderStatus(id, s)
+    if (!token) return
+    await updateOrderStatus(token, id, s)
     load()
   }
 

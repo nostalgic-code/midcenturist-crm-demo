@@ -1,26 +1,30 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
 import EnquiryTable from '@/components/cms/EnquiryTable'
-import { getEnquiries, updateEnquiryStatus } from '@/lib/api'
-import type { Enquiry } from '@/types/cms'
+import { getEnquiries, updateEnquiryStatus, type Enquiry } from '@/lib/api'
 
 export default function EnquiriesPage() {
+  const { data: session } = useSession()
   const [enquiries, setEnquiries] = useState<Enquiry[]>([])
   const [loading, setLoading]     = useState(true)
+  const token = (session as any)?.apiToken
 
   const load = () => {
+    if (!token) return
     setLoading(true)
-    getEnquiries()
+    getEnquiries(token)
       .then(setEnquiries)
       .catch(() => {})
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [token])
 
   const handleStatusChange = async (id: string, status: Enquiry['status']) => {
-    await updateEnquiryStatus(id, status)
+    if (!token) return
+    await updateEnquiryStatus(token, id, status)
     setEnquiries((prev) => prev.map((e) => (e.id === id ? { ...e, status } : e)))
   }
 

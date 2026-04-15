@@ -1,11 +1,11 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSearch, faDownload } from '@fortawesome/free-solid-svg-icons'
 import NewsletterTable from '@/components/cms/NewsletterTable'
-import { getSubscribers, exportSubscribersCSV } from '@/lib/api'
-import type { Subscriber } from '@/types/cms'
+import { getSubscribers, exportSubscribersCSV, type Subscriber } from '@/lib/api'
 
 export default function NewsletterPage() {
   const [subscribers, setSubscribers] = useState<Subscriber[]>([])
@@ -14,22 +14,27 @@ export default function NewsletterPage() {
   const [area, setArea]               = useState('')
   const [status, setStatus]           = useState('')
 
+  const { data: session } = useSession()
+  const token = (session as any)?.apiToken
+
   const load = useCallback(async () => {
+    if (!token) return
     setLoading(true)
     try {
-      const data = await getSubscribers({ search, area, status })
-      setSubscribers(data)
+      const res = await getSubscribers(token, { search, area, status })
+      setSubscribers(res.subscribers)
     } catch {
       /* noop */
     } finally {
       setLoading(false)
     }
-  }, [search, area, status])
+  }, [token, search, area, status])
 
   useEffect(() => { load() }, [load])
 
   const handleExport = async () => {
-    const blob = await exportSubscribersCSV()
+    if (!token) return
+    const blob = await exportSubscribersCSV(token)
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
     a.href     = url

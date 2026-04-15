@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPlus, faTrash, faArrowRight } from '@fortawesome/free-solid-svg-icons'
 import UpcomingForm from '@/components/cms/UpcomingForm'
-import { getUpcoming, createUpcoming, deleteUpcoming, convertUpcomingToProduct } from '@/lib/api'
-import type { UpcomingItem } from '@/types/cms'
+import { getUpcoming, createUpcoming, deleteUpcoming, convertUpcomingToProduct, type UpcomingItem } from '@/lib/api'
 
 const STATUS_STYLES: Record<UpcomingItem['status'], string> = {
   'coming-soon':         'bg-brand-off text-brand-muted',
@@ -24,36 +24,42 @@ const STATUS_LABELS: Record<UpcomingItem['status'], string> = {
 
 export default function UpcomingPage() {
   const router = useRouter()
+  const { data: session } = useSession()
   const [items, setItems]       = useState<UpcomingItem[]>([])
   const [loading, setLoading]   = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [converting, setConverting] = useState<string | null>(null)
+  const token = (session as any)?.apiToken
 
   const load = () => {
+    if (!token) return
     setLoading(true)
-    getUpcoming()
+    getUpcoming(token)
       .then(setItems)
       .catch(() => {})
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [token])
 
-  const handleCreate = async (data: Omit<UpcomingItem, 'id' | 'notifyCount' | 'createdAt'>) => {
-    await createUpcoming(data)
+  const handleCreate = async (data: Omit<UpcomingItem, 'id' | 'notify_count' | 'created_at'>) => {
+    if (!token) return
+    await createUpcoming(token, data)
     load()
   }
 
   const handleDelete = async (id: string) => {
+    if (!token) return
     if (!confirm('Remove this upcoming item?')) return
-    await deleteUpcoming(id)
+    await deleteUpcoming(token, id)
     setItems((prev) => prev.filter((i) => i.id !== id))
   }
 
   const handleConvert = async (id: string) => {
+    if (!token) return
     setConverting(id)
     try {
-      const product = await convertUpcomingToProduct(id)
+      const product = await convertUpcomingToProduct(token, id)
       router.push(`/products/${product.id}`)
     } finally {
       setConverting(null)

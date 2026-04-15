@@ -603,7 +603,11 @@ export async function getOrders(
   params?: { page?: number; status?: string; fulfilment?: string }
 ): Promise<{ orders: Order[]; total: number }> {
   if (!token) return { orders: [], total: 0 }
-  return adminGetOrders(token, params)
+  return adminGetOrders(token, {
+    page: params?.page,
+    status: params?.status as OrderStatus | undefined,
+    fulfillment_type: params?.fulfilment as FulfillmentType | undefined,
+  })
 }
 
 export async function updateOrderStatus(
@@ -630,7 +634,11 @@ export async function getSubscribers(
   params?: { status?: string; search?: string; page?: number; area?: string }
 ): Promise<{ subscribers: Subscriber[]; total: number }> {
   if (!token) return { subscribers: [], total: 0 }
-  return adminGetSubscribers(token, params as any)
+  return adminGetSubscribers(token, {
+    status: params?.status as 'active' | 'unsubscribed' | undefined,
+    search: params?.search,
+    page: params?.page,
+  })
 }
 
 export async function exportSubscribersCSV(token?: string): Promise<Blob> {
