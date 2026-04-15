@@ -107,10 +107,10 @@ export default function UpcomingPage() {
                   <p className="mt-1 text-sm text-brand-muted">{item.description}</p>
                 )}
                 <div className="mt-2 flex items-center gap-4 text-xs text-brand-muted">
-                  {item.estimatedPrice && (
-                    <span>Est. R{item.estimatedPrice.toLocaleString()}</span>
+                  {item.estimated_price && (
+                    <span>Est. R{item.estimated_price.toLocaleString()}</span>
                   )}
-                  <span>{item.notifyCount} notify request{item.notifyCount !== 1 ? 's' : ''}</span>
+                  <span>{item.notify_count} notify request{item.notify_count !== 1 ? 's' : ''}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
