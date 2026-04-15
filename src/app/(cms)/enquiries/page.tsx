@@ -1,3 +1,5 @@
+// Enquiries feature disabled for now
+/*
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -45,3 +47,4 @@ export default function EnquiriesPage() {
     </div>
   )
 }
+*/

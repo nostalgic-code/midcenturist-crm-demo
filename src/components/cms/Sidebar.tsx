@@ -18,7 +18,7 @@ const navItems = [
   { href: '/products',   label: 'Products',        icon: faBoxesStacked },
   { href: '/categories', label: 'Categories',      icon: faTag },
   { href: '/orders',     label: 'Orders',          icon: faBagShopping },
-  { href: '/enquiries',  label: 'Enquiries',       icon: faEnvelope },
+  // { href: '/enquiries',  label: 'Enquiries',       icon: faEnvelope }, // Disabled for now
   { href: '/instagram',  label: 'Instagram Sync',  icon: faInstagram },
   { href: '/upcoming',   label: 'Coming Soon',     icon: faClock },
   { href: '/newsletter', label: 'Newsletter',      icon: faPaperPlane },
