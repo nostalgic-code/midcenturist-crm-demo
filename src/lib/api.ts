@@ -578,3 +578,91 @@ export async function changePassword(token: string, currentPassword: string, new
     }),
   })
 }
+
+// ─── Public API Wrappers (for pages without token in context) ─────────────────
+
+// Enquiries
+export async function getEnquiries(token?: string): Promise<Enquiry[]> {
+  if (!token) return []
+  const result = await adminGetEnquiries(token)
+  return result.enquiries
+}
+
+export async function updateEnquiryStatus(
+  token: string | undefined,
+  enquiryId: string,
+  status: 'read' | 'replied'
+): Promise<Enquiry> {
+  if (!token) throw new Error('No token provided')
+  return adminUpdateEnquiryStatus(token, enquiryId, status)
+}
+
+// Orders
+export async function getOrders(
+  token?: string,
+  params?: { page?: number; status?: string; fulfilment?: string }
+): Promise<{ orders: Order[]; total: number }> {
+  if (!token) return { orders: [], total: 0 }
+  return adminGetOrders(token, params)
+}
+
+export async function updateOrderStatus(
+  token: string | undefined,
+  orderId: string,
+  status: OrderStatus
+): Promise<Order> {
+  if (!token) throw new Error('No token provided')
+  return adminUpdateOrderStatus(token, orderId, status)
+}
+
+export async function exportOrdersCSV(token?: string): Promise<Blob> {
+  if (!token) throw new Error('No token provided')
+  const res = await fetch(`${BASE_URL}/api/admin/orders/export/csv`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error('Failed to export orders')
+  return res.blob()
+}
+
+// Subscribers
+export async function getSubscribers(
+  token?: string,
+  params?: { status?: string; search?: string; page?: number; area?: string }
+): Promise<{ subscribers: Subscriber[]; total: number }> {
+  if (!token) return { subscribers: [], total: 0 }
+  return adminGetSubscribers(token, params as any)
+}
+
+export async function exportSubscribersCSV(token?: string): Promise<Blob> {
+  if (!token) throw new Error('No token provided')
+  const res = await fetch(`${BASE_URL}/api/admin/subscribers/export/csv`, {
+    headers: { 'Authorization': `Bearer ${token}` },
+  })
+  if (!res.ok) throw new Error('Failed to export subscribers')
+  return res.blob()
+}
+
+// Upcoming
+export async function getUpcoming(token?: string): Promise<UpcomingItem[]> {
+  if (!token) return []
+  const result = await adminGetUpcoming(token)
+  return result.items
+}
+
+export async function createUpcoming(
+  token: string | undefined,
+  payload: Pick<UpcomingItem, 'name' | 'description' | 'estimated_price' | 'status'>
+): Promise<UpcomingItem> {
+  if (!token) throw new Error('No token provided')
+  return adminCreateUpcoming(token, payload)
+}
+
+export async function deleteUpcoming(token: string | undefined, upcomingId: string): Promise<void> {
+  if (!token) throw new Error('No token provided')
+  await adminDeleteUpcoming(token, upcomingId)
+}
+
+export async function convertUpcomingToProduct(token: string | undefined, upcomingId: string): Promise<Product> {
+  if (!token) throw new Error('No token provided')
+  return adminConvertUpcomingToProduct(token, upcomingId)
+}
