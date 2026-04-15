@@ -106,7 +106,7 @@ export default function EnquiryTable({ enquiries, onStatusChange }: EnquiryTable
               </div>
               <Separator />
               <p className="text-xs text-muted-foreground">
-                {new Date(selected.createdAt).toLocaleString('en-ZA')}
+                {new Date(selected.created_at).toLocaleString('en-ZA')}
               </p>
               <div className="mt-auto space-y-2 pt-4">
                 <Button asChild className="w-full">
