@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faSearch, faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons'
 import ProductTable from '@/components/cms/ProductTable'
-import { getProducts, markProductSold, deleteProduct } from '@/lib/api'
-import type { Product } from '@/types/cms'
+import { adminGetProducts, adminMarkSold, adminDeleteProduct } from '@/lib/api'
+import type { Product } from '@/lib/api'
 
 const CATEGORIES = [
   'All',
@@ -20,6 +21,7 @@ const CATEGORIES = [
 const PAGE_SIZE = 20
 
 export default function ProductsPage() {
+  const { data: session } = useSession()
   const [products, setProducts] = useState<Product[]>([])
   const [total, setTotal]       = useState(0)
   const [page, setPage]         = useState(1)
@@ -30,10 +32,13 @@ export default function ProductsPage() {
   const [sort, setSort]         = useState('newest')
   const [confirm, setConfirm]   = useState<{ action: 'sold' | 'delete'; id: string } | null>(null)
 
+  const token = (session as any)?.apiToken
+
   const load = useCallback(async () => {
+    if (!token) return
     setLoading(true)
     try {
-      const res = await getProducts({ search, status, category: category === 'All' ? '' : category, sort, page })
+      const res = await adminGetProducts(token, { search, status: (status as any) || undefined, category: category === 'All' ? '' : category, sort: (sort as any), page })
       setProducts(res.products)
       setTotal(res.total)
     } catch {
@@ -41,7 +46,7 @@ export default function ProductsPage() {
     } finally {
       setLoading(false)
     }
-  }, [search, status, category, sort, page])
+  }, [search, status, category, sort, page, token])
 
   useEffect(() => { load() }, [load])
 
@@ -49,9 +54,9 @@ export default function ProductsPage() {
   const handleDelete   = (id: string) => setConfirm({ action: 'delete', id })
 
   const handleConfirm = async () => {
-    if (!confirm) return
-    if (confirm.action === 'sold') await markProductSold(confirm.id)
-    else await deleteProduct(confirm.id)
+    if (!confirm || !token) return
+    if (confirm.action === 'sold') await adminMarkSold(token, confirm.id)
+    else await adminDeleteProduct(token, confirm.id)
     setConfirm(null)
     load()
   }

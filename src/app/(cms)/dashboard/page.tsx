@@ -1,4 +1,6 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { getServerSession } from 'next-auth'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faBoxesStacked, faBagShopping, faEnvelope,
@@ -9,27 +11,32 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { authOptions } from '@/lib/auth'
+import { adminGetDashboardStats } from '@/lib/api'
 import StatCard from '@/components/cms/StatCard'
-import { getDashboardStats, getDashboardActivity } from '@/lib/api'
-import type { DashboardStats, ActivityItem } from '@/types/cms'
+import type { DashboardStats } from '@/lib/api'
 
 // Revalidate dashboard every 60 seconds
 export const revalidate = 60
 
 export default async function DashboardPage() {
-  const [stats, activity] = await Promise.all([
-    getDashboardStats().catch(() => null),
-    getDashboardActivity().catch(() => []),
-  ])
+  const session = await getServerSession(authOptions)
+  const token = (session as any)?.apiToken
+
+  if (!token) {
+    redirect('/login')
+  }
+
+  const stats = await adminGetDashboardStats(token).catch(() => null)
 
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Stat cards */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Products Live"           value={stats?.totalProductsLive ?? 0}     iconDef={faBoxesStacked} trend="Updated live" />
-        <StatCard label="Orders This Month"       value={stats?.ordersThisMonth ?? 0}        iconDef={faBagShopping}  trendUp />
-        <StatCard label="Unread Enquiries"        value={stats?.unreadEnquiries ?? 0}        iconDef={faEnvelope}     trend={stats?.unreadEnquiries ? 'Needs attention' : undefined} />
-        <StatCard label="Newsletter Subscribers"  value={stats?.newsletterSubscribers ?? 0}  iconDef={faPaperPlane}   trendUp />
+        <StatCard label="Products Live"           value={stats?.live_products ?? 0}           iconDef={faBoxesStacked} trend="Updated live" />
+        <StatCard label="Orders This Month"       value={stats?.orders_this_month ?? 0}       iconDef={faBagShopping}  trendUp />
+        <StatCard label="Pending Reviews"         value={stats?.pending_reviews ?? 0}         iconDef={faEnvelope}     trend={stats?.pending_reviews ? 'Needs approval' : undefined} />
+        <StatCard label="Newsletter Subscribers"  value={stats?.total_subscribers ?? 0}       iconDef={faPaperPlane}   trendUp />
       </div>
 
       {/* Quick actions */}
@@ -46,73 +53,83 @@ export default async function DashboardPage() {
             <FontAwesomeIcon icon={faInstagram} className="mr-1.5 h-3 w-3" />
             <span className="hidden sm:inline">Instagram Drafts</span>
             <span className="sm:hidden">Instagram</span>
+            {(stats?.drafts_from_instagram ?? 0) > 0 && (
+              <Badge className="ml-1.5 h-4 px-1.5 text-[9px]">{stats?.drafts_from_instagram}</Badge>
+            )}
           </Link>
         </Button>
         <Button asChild variant="outline" size="sm">
           <Link href="/enquiries">
             <FontAwesomeIcon icon={faEnvelope} className="mr-1.5 h-3 w-3" />
-            <span className="hidden sm:inline">Enquiries</span>
-            <span className="sm:hidden">Inbox</span>
-            {(stats?.unreadEnquiries ?? 0) > 0 && (
-              <Badge className="ml-1.5 h-4 px-1.5 text-[9px]">{stats?.unreadEnquiries}</Badge>
+            <span className="hidden sm:inline">Pending Reviews</span>
+            <span className="sm:hidden">Reviews</span>
+            {(stats?.pending_reviews ?? 0) > 0 && (
+              <Badge className="ml-1.5 h-4 px-1.5 text-[9px]">{stats?.pending_reviews}</Badge>
             )}
           </Link>
         </Button>
       </div>
 
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-        {/* Recent activity */}
+        {/* Status Overview */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Recent Activity</CardTitle>
+            <CardTitle className="text-base">Inventory Status</CardTitle>
           </CardHeader>
           <CardContent>
-            {activity.length === 0 ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">No recent activity yet.</p>
-            ) : (
-              <ul className="space-y-0">
-                {activity.slice(0, 10).map((item, i) => (
-                  <li key={i}>
-                    <div className="flex items-start gap-3 py-3">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted">
-                        <FontAwesomeIcon
-                          icon={item.type === 'order' ? faBagShopping : item.type === 'subscriber' ? faPaperPlane : faInstagram}
-                          className="h-3 w-3 text-muted-foreground"
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">{item.label}</p>
-                        <p className="text-xs text-muted-foreground">{item.detail}</p>
-                      </div>
-                      <time className="shrink-0 text-xs text-muted-foreground">
-                        {new Date(item.timestamp).toLocaleDateString('en-ZA')}
-                      </time>
-                    </div>
-                    {i < activity.length - 1 && <Separator />}
-                  </li>
-                ))}
-              </ul>
-            )}
+            <ul className="space-y-0">
+              <li>
+                <div className="flex items-center justify-between py-3">
+                  <span className="text-sm font-medium">Live Products</span>
+                  <span className="text-sm font-semibold">{stats?.live_products ?? 0}</span>
+                </div>
+                <Separator />
+              </li>
+              <li>
+                <div className="flex items-center justify-between py-3">
+                  <span className="text-sm font-medium">Draft Products</span>
+                  <span className="text-sm font-semibold">{stats?.draft_products ?? 0}</span>
+                </div>
+                <Separator />
+              </li>
+              <li>
+                <div className="flex items-center justify-between py-3">
+                  <span className="text-sm font-medium">Sold Products</span>
+                  <span className="text-sm font-semibold">{stats?.sold_products ?? 0}</span>
+                </div>
+              </li>
+            </ul>
           </CardContent>
         </Card>
 
-        {/* Attention needed */}
+        {/* Attention Required */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Attention Needed</CardTitle>
+            <CardTitle className="text-base">Action Required</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
-                <FontAwesomeIcon icon={faTriangleExclamation} className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <p className="text-sm text-muted-foreground max-w-xs">
-                Items marked &ldquo;Last One&rdquo;, drafts older than 7 days, and sold items near auto-archive will appear here.
-              </p>
-              <Button asChild variant="link" size="sm" className="mt-2">
-                <Link href="/products">View all products</Link>
-              </Button>
-            </div>
+            <ul className="space-y-0">
+              <li>
+                <div className="flex items-center justify-between py-3">
+                  <span className="text-sm font-medium">Pending Orders</span>
+                  <span className="text-sm font-semibold">{stats?.pending_orders ?? 0}</span>
+                </div>
+                <Separator />
+              </li>
+              <li>
+                <div className="flex items-center justify-between py-3">
+                  <span className="text-sm font-medium">Pending Reviews</span>
+                  <span className="text-sm font-semibold">{stats?.pending_reviews ?? 0}</span>
+                </div>
+                <Separator />
+              </li>
+              <li>
+                <div className="flex items-center justify-between py-3">
+                  <span className="text-sm font-medium">Instagram Drafts</span>
+                  <span className="text-sm font-semibold">{stats?.drafts_from_instagram ?? 0}</span>
+                </div>
+              </li>
+            </ul>
           </CardContent>
         </Card>
       </div>

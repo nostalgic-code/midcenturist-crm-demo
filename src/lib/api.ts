@@ -1,223 +1,580 @@
-// ─── Flask API Calls ──────────────────────────────────────────────────────────
+// ─── Flask API Integration ────────────────────────────────────────────────────
+// Admin API calls with Bearer token authentication
+// All functions require a Flask JWT token obtained from POST /api/admin/login
 
-import type {
-  Product,
-  ProductFormData,
-  Order,
-  Enquiry,
-  UpcomingItem,
-  Subscriber,
-  DashboardStats,
-  ActivityItem,
-  Settings,
-} from '@/types/cms'
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://midcenturist-api.onrender.com'
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? ''
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+export type ProductStatus = 'live' | 'draft' | 'sold' | 'archived'
+export type ProductCondition = 'Excellent' | 'Very Good' | 'Good' | 'Restored'
+export type ProductBadge = 'New In' | 'Last One' | 'Sale'
+export type OrderStatus = 'pending' | 'confirmed' | 'paid' | 'shipped' | 'collected' | 'delivered' | 'cancelled'
+export type FulfillmentType = 'collection' | 'shipping'
+
+export interface ProductVariant {
+  id: string
+  product_id: string
+  name: string | null
+  price: number
+  sale_price: number | null
+  effective_price: number
+  on_sale: boolean
+  sku: string | null
+  stock_qty: number
+  is_available: boolean
+}
+
+export interface ProductImage {
+  id: string
+  product_id: string
+  variant_id: string | null
+  url: string
+  alt_text: string | null
+  sort_order: number
+  is_primary: boolean
+}
+
+export interface Category {
+  id: string
+  name: string
+  slug: string
+  parent_id: string | null
+  children?: Category[]
+}
+
+export interface Product {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  era: string | null
+  material: string | null
+  year: number | null
+  condition: ProductCondition | null
+  status: ProductStatus
+  badge: ProductBadge | null
+  is_featured: boolean
+  is_unique: boolean
+  category: Category | null
+  variants: ProductVariant[]
+  images: ProductImage[]
+  primary_image: ProductImage | null
+  instagram_post_id: string | null
+  instagram_post_url: string | null
+  sold_at: string | null
+  archive_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Order {
+  id: string
+  order_number: string
+  status: OrderStatus
+  fulfillment_type: FulfillmentType
+  total_amount: number
+  billing_address: {
+    name: string
+    email: string
+    phone: string
+    address_line1?: string
+    city?: string
+    province?: string
+    postal_code?: string
+  }
+  shipping_address: object | null
+  collection_address: object | null
+  notes: string | null
+  created_at: string
+  items: Array<{
+    quantity: number
+    price_at_purchase: number
+    line_total: number
+    product_snapshot: Record<string, unknown>
+  }>
+  payments: Array<{
+    id: string
+    method: string
+    status: string
+    amount: number
+    transaction_id: string | null
+    paid_at: string | null
+  }>
+}
+
+export interface Review {
+  id: string
+  reviewer_name: string
+  rating: number
+  comment: string | null
+  is_approved?: boolean
+  created_at: string
+}
+
+export interface Subscriber {
+  id: string
+  email: string
+  first_name: string | null
+  last_name: string | null
+  phone: string | null
+  area: string | null
+  source: string
+  is_active: boolean
+  subscribed_at: string
+}
+
+export interface UpcomingItem {
+  id: string
+  name: string
+  description: string | null
+  estimated_price: number | null
+  status: 'coming-soon' | 'sourced' | 'in-restoration' | 'expected-this-week'
+  notify_count: number
+  sort_order: number
+  created_at: string
+}
+
+export interface Enquiry {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  message: string
+  status: 'unread' | 'read' | 'replied'
+  created_at: string
+}
+
+export interface CreateProductPayload {
+  name: string
+  description?: string
+  category_id?: string
+  era?: string
+  material?: string
+  year?: number
+  condition?: ProductCondition
+  status?: ProductStatus
+  badge?: ProductBadge | null
+  is_featured?: boolean
+  is_unique?: boolean
+  instagram_post_id?: string
+  instagram_post_url?: string
+  price?: number           // creates a default single variant
+  sale_price?: number
+  variants?: Array<{
+    name?: string
+    price: number
+    sale_price?: number
+    sku?: string
+    stock_qty?: number
+  }>
+}
+
+export interface DashboardStats {
+  live_products: number
+  draft_products: number
+  sold_products: number
+  orders_this_month: number
+  pending_orders: number
+  total_subscribers: number
+  pending_reviews: number
+  drafts_from_instagram: number
+}
+
+// ─── Fetch helper ─────────────────────────────────────────────────────────────
+
+async function adminFetch<T>(
+  path: string,
+  token: string,
+  options?: RequestInit
+): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      ...options?.headers,
+    },
     ...options,
   })
+
   if (!res.ok) {
-    const text = await res.text()
-    throw new Error(`API error ${res.status}: ${text}`)
+    let errorMsg = `HTTP ${res.status}`
+    try {
+      const error = await res.json()
+      console.error('API Error Response:', error)
+      errorMsg = error.error || error.errors?.join(', ') || error.message || errorMsg
+    } catch (parseErr) {
+      console.error('Could not parse error response:', parseErr)
+    }
+    throw new Error(errorMsg)
   }
-  return res.json() as Promise<T>
+
+  return res.json()
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
-export function getDashboardStats(): Promise<DashboardStats> {
-  return apiFetch<DashboardStats>('/api/dashboard/stats')
+export async function adminGetDashboardStats(token: string): Promise<DashboardStats> {
+  return adminFetch<DashboardStats>('/api/admin/dashboard', token)
 }
 
-export function getDashboardActivity(): Promise<ActivityItem[]> {
-  return apiFetch<ActivityItem[]>('/api/dashboard/activity')
+// ─── Products — Admin ─────────────────────────────────────────────────────────
+
+export async function adminGetProducts(
+  token: string,
+  params: {
+    status?: ProductStatus
+    category?: string
+    search?: string
+    sort?: 'newest' | 'price-high' | 'price-low' | 'name'
+    page?: number
+    limit?: number
+  } = {}
+): Promise<{ products: Product[]; total: number; page: number }> {
+  const q = new URLSearchParams()
+  if (params.status) q.set('status', params.status)
+  if (params.category) q.set('category', params.category)
+  if (params.search) q.set('search', params.search)
+  if (params.sort) q.set('sort', params.sort)
+  if (params.page) q.set('page', String(params.page))
+  if (params.limit) q.set('limit', String(params.limit))
+  return adminFetch(`/api/admin/products?${q}`, token)
 }
 
-// ─── Products ─────────────────────────────────────────────────────────────────
-
-export function getProducts(params?: {
-  search?: string
-  status?: string
-  category?: string
-  sort?: string
-  page?: number
-}): Promise<{ products: Product[]; total: number }> {
-  const qs = new URLSearchParams()
-  if (params?.search)   qs.set('search', params.search)
-  if (params?.status)   qs.set('status', params.status)
-  if (params?.category) qs.set('category', params.category)
-  if (params?.sort)     qs.set('sort', params.sort)
-  if (params?.page)     qs.set('page', String(params.page))
-  return apiFetch<{ products: Product[]; total: number }>(`/api/products?${qs}`)
+export async function adminGetProduct(token: string, productId: string): Promise<Product> {
+  return adminFetch(`/api/admin/products/${productId}`, token)
 }
 
-export function getProduct(id: string): Promise<Product> {
-  return apiFetch<Product>(`/api/products/${id}`)
-}
-
-export async function createProduct(data: ProductFormData): Promise<Product> {
-  const formData = new FormData()
-  const { photos, ...rest } = data
-  formData.append('data', JSON.stringify(rest))
-  photos.forEach((f) => formData.append('photos', f))
-  const res = await fetch(`${BASE_URL}/api/products`, {
+export async function adminCreateProduct(
+  token: string,
+  payload: CreateProductPayload
+): Promise<Product> {
+  return adminFetch('/api/admin/products', token, {
     method: 'POST',
-    body: formData,
+    body: JSON.stringify(payload),
   })
-  if (!res.ok) throw new Error(`API error ${res.status}`)
-  return res.json() as Promise<Product>
 }
 
-export async function updateProduct(id: string, data: Partial<ProductFormData>): Promise<Product> {
-  const { photos, ...rest } = data
-  if (photos && photos.length > 0) {
-    const formData = new FormData()
-    formData.append('data', JSON.stringify(rest))
-    photos.forEach((f) => formData.append('photos', f))
-    const res = await fetch(`${BASE_URL}/api/products/${id}`, {
-      method: 'PUT',
-      body: formData,
-    })
-    if (!res.ok) throw new Error(`API error ${res.status}`)
-    return res.json() as Promise<Product>
+export async function adminUpdateProduct(
+  token: string,
+  productId: string,
+  payload: Partial<CreateProductPayload>
+): Promise<Product> {
+  return adminFetch(`/api/admin/products/${productId}`, token, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function adminMarkSold(token: string, productId: string): Promise<Product> {
+  return adminFetch(`/api/admin/products/${productId}/mark-sold`, token, { method: 'POST' })
+}
+
+export async function adminDeleteProduct(
+  token: string,
+  productId: string,
+  permanent = false
+): Promise<{ message: string }> {
+  return adminFetch(
+    `/api/admin/products/${productId}${permanent ? '?permanent=true' : ''}`,
+    token,
+    { method: 'DELETE' }
+  )
+}
+
+// ─── Product Variants — Admin ─────────────────────────────────────────────────
+
+export async function adminAddVariant(
+  token: string,
+  productId: string,
+  variant: { name?: string; price: number; sale_price?: number; sku?: string; stock_qty?: number }
+): Promise<ProductVariant> {
+  return adminFetch(`/api/admin/products/${productId}/variants`, token, {
+    method: 'POST',
+    body: JSON.stringify(variant),
+  })
+}
+
+export async function adminUpdateVariant(
+  token: string,
+  productId: string,
+  variantId: string,
+  updates: Partial<{ name: string; price: number; sale_price: number | null; stock_qty: number; is_available: boolean }>
+): Promise<ProductVariant> {
+  return adminFetch(`/api/admin/products/${productId}/variants/${variantId}`, token, {
+    method: 'PUT',
+    body: JSON.stringify(updates),
+  })
+}
+
+// ─── Product Images — Admin ───────────────────────────────────────────────────
+
+export async function adminUploadImage(
+  token: string,
+  productId: string,
+  file: File,
+  altText?: string
+): Promise<ProductImage> {
+  const form = new FormData()
+  form.append('file', file)
+  if (altText) form.append('alt_text', altText)
+
+  const res = await fetch(`${BASE_URL}/api/admin/products/${productId}/images`, {
+    method: 'POST',
+    headers: { 
+      'Authorization': `Bearer ${token}`,
+      // Don't set Content-Type — browser will set it with multipart boundary
+    },
+    body: form,
+  })
+
+  if (!res.ok) {
+    let errorMsg = `HTTP ${res.status}`
+    try {
+      const error = await res.json()
+      console.error('Image upload error response:', error)
+      errorMsg = error.error || error.errors?.join(', ') || error.message || errorMsg
+    } catch (parseErr) {
+      console.error('Could not parse error response:', parseErr)
+    }
+    throw new Error(errorMsg)
   }
-  return apiFetch<Product>(`/api/products/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(rest),
+  return res.json()
+}
+
+export function getImageUrl(imagePath: string | undefined): string {
+  if (!imagePath) return '/placeholder.png'
+  // API now returns full absolute URLs
+  if (imagePath.startsWith('http')) return imagePath
+  // Fallback for older relative URLs (shouldn't happen now)
+  if (imagePath.startsWith('/api/images/')) return `${BASE_URL}${imagePath}`
+  return imagePath
+}
+
+export async function adminDeleteImage(
+  token: string,
+  productId: string,
+  imageId: string
+): Promise<{ message: string }> {
+  return adminFetch(`/api/admin/products/${productId}/images/${imageId}`, token, {
+    method: 'DELETE',
   })
 }
 
-export function markProductSold(id: string): Promise<Product> {
-  return apiFetch<Product>(`/api/products/${id}/sold`, { method: 'POST' })
+// ─── Orders — Admin ───────────────────────────────────────────────────────────
+
+export async function adminGetOrders(
+  token: string,
+  params: {
+    status?: OrderStatus
+    fulfillment_type?: FulfillmentType
+    page?: number
+    limit?: number
+  } = {}
+): Promise<{ orders: Order[]; total: number; page: number }> {
+  const q = new URLSearchParams()
+  if (params.status) q.set('status', params.status)
+  if (params.fulfillment_type) q.set('fulfillment_type', params.fulfillment_type)
+  if (params.page) q.set('page', String(params.page))
+  if (params.limit) q.set('limit', String(params.limit))
+  return adminFetch(`/api/admin/orders?${q}`, token)
 }
 
-export function deleteProduct(id: string): Promise<void> {
-  return apiFetch<void>(`/api/products/${id}`, { method: 'DELETE' })
+export async function adminGetOrder(token: string, orderId: string): Promise<Order> {
+  return adminFetch(`/api/admin/orders/${orderId}`, token)
 }
 
-// ─── Orders ───────────────────────────────────────────────────────────────────
-
-export function getOrders(params?: {
-  status?: string
-  fulfilmentType?: string
-  page?: number
-}): Promise<{ orders: Order[]; total: number }> {
-  const qs = new URLSearchParams()
-  if (params?.status)        qs.set('status', params.status)
-  if (params?.fulfilmentType) qs.set('fulfilmentType', params.fulfilmentType)
-  if (params?.page)          qs.set('page', String(params.page))
-  return apiFetch<{ orders: Order[]; total: number }>(`/api/orders?${qs}`)
-}
-
-export function updateOrderStatus(
-  id: string,
-  status: Order['status'],
+export async function adminUpdateOrderStatus(
+  token: string,
+  orderId: string,
+  status: OrderStatus
 ): Promise<Order> {
-  return apiFetch<Order>(`/api/orders/${id}/status`, {
+  return adminFetch(`/api/admin/orders/${orderId}/status`, token, {
     method: 'PUT',
     body: JSON.stringify({ status }),
   })
 }
 
-// ─── Enquiries ────────────────────────────────────────────────────────────────
+// ─── Categories — Admin ───────────────────────────────────────────────────────
 
-export function getEnquiries(): Promise<Enquiry[]> {
-  return apiFetch<Enquiry[]>('/api/enquiries')
+export async function adminGetCategories(): Promise<{ categories: Category[] }> {
+  // Public endpoint — no authentication needed
+  const res = await fetch(`${BASE_URL}/api/categories`)
+  if (!res.ok) throw new Error(`Failed to fetch categories: ${res.status}`)
+  return res.json()
 }
 
-export function updateEnquiryStatus(
-  id: string,
-  status: Enquiry['status'],
-): Promise<Enquiry> {
-  return apiFetch<Enquiry>(`/api/enquiries/${id}/status`, {
-    method: 'PUT',
-    body: JSON.stringify({ status }),
-  })
-}
-
-// ─── Upcoming ─────────────────────────────────────────────────────────────────
-
-export function getUpcoming(): Promise<UpcomingItem[]> {
-  return apiFetch<UpcomingItem[]>('/api/upcoming')
-}
-
-export function createUpcoming(
-  data: Omit<UpcomingItem, 'id' | 'notifyCount' | 'createdAt'>,
-): Promise<UpcomingItem> {
-  return apiFetch<UpcomingItem>('/api/upcoming', {
+export async function adminCreateCategory(
+  token: string,
+  payload: { name: string; parent_id?: string }
+): Promise<Category> {
+  return adminFetch('/api/admin/categories', token, {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   })
 }
 
-export function updateUpcoming(
-  id: string,
-  data: Partial<UpcomingItem>,
+export async function adminUpdateCategory(
+  token: string,
+  categoryId: string,
+  payload: { name?: string; parent_id?: string | null }
+): Promise<Category> {
+  return adminFetch(`/api/admin/categories/${categoryId}`, token, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  })
+}
+
+// ─── Instagram Sync — Admin ───────────────────────────────────────────────────
+
+export async function adminInstagramSync(
+  token: string
+): Promise<{ synced: number; new_drafts: Array<{ post_id: string; name: string }>; message: string }> {
+  return adminFetch('/api/admin/instagram/sync', token, { method: 'POST' })
+}
+
+export async function adminGetInstagramPosts(
+  token: string
+): Promise<{ posts: Array<{ id: string; caption: string; media_url: string; permalink: string; already_imported: boolean }> }> {
+  return adminFetch('/api/admin/instagram/posts', token)
+}
+
+// ─── Reviews — Admin ──────────────────────────────────────────────────────────
+
+export async function adminGetReviews(
+  token: string,
+  approved?: boolean
+): Promise<{ reviews: Review[] }> {
+  const q = approved !== undefined ? `?approved=${approved}` : ''
+  return adminFetch(`/api/admin/reviews${q}`, token)
+}
+
+export async function adminApproveReview(
+  token: string,
+  reviewId: string,
+  approved: boolean
+): Promise<{ message: string; review: Review }> {
+  return adminFetch(`/api/admin/reviews/${reviewId}/approve`, token, {
+    method: 'PUT',
+    body: JSON.stringify({ approved }),
+  })
+}
+
+// ─── Newsletter Subscribers — Admin ────────────────────────────────────────────
+
+export async function adminGetSubscribers(
+  token: string,
+  params?: {
+    status?: 'active' | 'unsubscribed'
+    search?: string
+    page?: number
+  }
+): Promise<{ subscribers: Subscriber[]; total: number }> {
+  const q = new URLSearchParams()
+  if (params?.status) q.set('status', params.status)
+  if (params?.search) q.set('search', params.search)
+  if (params?.page) q.set('page', String(params.page))
+  return adminFetch(`/api/admin/subscribers?${q}`, token)
+}
+
+export async function adminUnsubscribeContact(
+  token: string,
+  subscriberId: string
+): Promise<{ message: string }> {
+  return adminFetch(`/api/admin/subscribers/${subscriberId}`, token, { method: 'DELETE' })
+}
+
+// ─── Upcoming Items — Admin ───────────────────────────────────────────────────
+
+export async function adminGetUpcoming(token: string): Promise<{ items: UpcomingItem[] }> {
+  return adminFetch('/api/admin/upcoming', token)
+}
+
+export async function adminCreateUpcoming(
+  token: string,
+  payload: Pick<UpcomingItem, 'name' | 'description' | 'estimated_price' | 'status'>
 ): Promise<UpcomingItem> {
-  return apiFetch<UpcomingItem>(`/api/upcoming/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
+  return adminFetch('/api/admin/upcoming', token, {
+    method: 'POST',
+    body: JSON.stringify(payload),
   })
 }
 
-export function deleteUpcoming(id: string): Promise<void> {
-  return apiFetch<void>(`/api/upcoming/${id}`, { method: 'DELETE' })
-}
-
-export function convertUpcomingToProduct(id: string): Promise<Product> {
-  return apiFetch<Product>(`/api/upcoming/${id}/convert`, { method: 'POST' })
-}
-
-export function reorderUpcoming(ids: string[]): Promise<void> {
-  return apiFetch<void>('/api/upcoming/reorder', {
+export async function adminUpdateUpcoming(
+  token: string,
+  upcomingId: string,
+  payload: Partial<Pick<UpcomingItem, 'name' | 'description' | 'estimated_price' | 'status' | 'sort_order'>>
+): Promise<UpcomingItem> {
+  return adminFetch(`/api/admin/upcoming/${upcomingId}`, token, {
     method: 'PUT',
-    body: JSON.stringify({ ids }),
+    body: JSON.stringify(payload),
   })
 }
 
-// ─── Newsletter ───────────────────────────────────────────────────────────────
-
-export function getSubscribers(params?: {
-  search?: string
-  area?: string
-  status?: string
-}): Promise<Subscriber[]> {
-  const qs = new URLSearchParams()
-  if (params?.search) qs.set('search', params.search)
-  if (params?.area)   qs.set('area', params.area)
-  if (params?.status) qs.set('status', params.status)
-  return apiFetch<Subscriber[]>(`/api/newsletter/subscribers?${qs}`)
+export async function adminDeleteUpcoming(
+  token: string,
+  upcomingId: string
+): Promise<{ message: string }> {
+  return adminFetch(`/api/admin/upcoming/${upcomingId}`, token, { method: 'DELETE' })
 }
 
-export function exportSubscribersCSV(): Promise<Blob> {
-  return fetch(`${BASE_URL}/api/newsletter/subscribers/export`).then((r) => r.blob())
+export async function adminConvertUpcomingToProduct(
+  token: string,
+  upcomingId: string
+): Promise<Product> {
+  return adminFetch(`/api/admin/upcoming/${upcomingId}/convert`, token, { method: 'POST' })
 }
 
-// ─── Settings ─────────────────────────────────────────────────────────────────
+// ─── Enquiries — Admin ────────────────────────────────────────────────────────
 
-export function getSettings(): Promise<Settings> {
-  return apiFetch<Settings>('/api/settings')
+export async function adminGetEnquiries(token: string): Promise<{ enquiries: Enquiry[]; unread_count: number }> {
+  return adminFetch('/api/admin/enquiries', token)
 }
 
-export function updateSettings(data: Partial<Settings>): Promise<Settings> {
-  return apiFetch<Settings>('/api/settings', {
-    method: 'PUT',
-    body: JSON.stringify(data),
+export async function adminUpdateEnquiryStatus(
+  token: string,
+  enquiryId: string,
+  status: 'read' | 'replied'
+): Promise<Enquiry> {
+  return adminFetch(`/api/admin/enquiries/${enquiryId}`, token, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
   })
 }
 
-export function changePassword(current: string, next: string): Promise<void> {
-  return apiFetch<void>('/api/settings/password', {
-    method: 'PUT',
-    body: JSON.stringify({ current, next }),
-  })
+// ─── Settings (Not yet implemented on Flask API) ────────────────────────────
+
+export interface Settings {
+  storeName: string
+  contactEmail: string
+  contactPhone: string
+  collectionAddress: string
+  businessEmail: string
+  notifications: {
+    newOrder: boolean
+    newEnquiry: boolean
+    newSubscriber: boolean
+    instagramDraft: boolean
+  }
+  payfast: {
+    merchantId: string
+    merchantKey: string
+  }
+  yoco: {
+    publicKey: string
+    secretKey: string
+  }
+  defaultShippingMessage: string
+  autoArchiveDays: number
 }
 
-// ─── Orders CSV ───────────────────────────────────────────────────────────────
-
-export function exportOrdersCSV(): Promise<Blob> {
-  return fetch(`${BASE_URL}/api/orders/export`).then((r) => r.blob())
+// Change admin account password
+export async function changePassword(token: string, currentPassword: string, newPassword: string): Promise<void> {
+  return adminFetch('/api/admin/password', token, {
+    method: 'POST',
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password: newPassword,
+    }),
+  })
 }

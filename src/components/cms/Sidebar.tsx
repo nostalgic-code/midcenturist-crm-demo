@@ -3,11 +3,11 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { signOut } from 'next-auth/react'
+import { useSession, signOut } from 'next-auth/react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faGauge, faBoxesStacked, faBagShopping, faEnvelope,
-  faClock, faPaperPlane, faGear, faRightFromBracket,
+  faClock, faPaperPlane, faGear, faRightFromBracket, faTag,
 } from '@fortawesome/free-solid-svg-icons'
 import { faInstagram } from '@fortawesome/free-brands-svg-icons'
 import { Badge } from '@/components/ui/badge'
@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 const navItems = [
   { href: '/dashboard',  label: 'Dashboard',      icon: faGauge },
   { href: '/products',   label: 'Products',        icon: faBoxesStacked },
+  { href: '/categories', label: 'Categories',      icon: faTag },
   { href: '/orders',     label: 'Orders',          icon: faBagShopping },
   { href: '/enquiries',  label: 'Enquiries',       icon: faEnvelope },
   { href: '/instagram',  label: 'Instagram Sync',  icon: faInstagram },
@@ -26,6 +27,9 @@ const navItems = [
 
 export default function CMSSidebar() {
   const pathname = usePathname()
+  const { data: session } = useSession()
+  const userEmail = session?.user?.email || 'Admin'
+  const userInitial = userEmail.charAt(0).toUpperCase()
 
   return (
     <aside className="flex h-screen w-64 shrink-0 flex-col border-r bg-card">
@@ -75,10 +79,10 @@ export default function CMSSidebar() {
       <div className="border-t p-4">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">
-            A
+            {userInitial}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-medium">hello@midcenturist.co.za</p>
+            <p className="truncate text-xs font-medium">{userEmail}</p>
             <p className="text-[10px] text-muted-foreground">Administrator</p>
           </div>
           <button

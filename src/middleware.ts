@@ -1,14 +1,22 @@
 // ─── Route Protection Middleware ──────────────────────────────────────────────
-// TODO: re-enable once backend + auth is live
-//
-// import { withAuth } from 'next-auth/middleware'
-// export default withAuth({ pages: { signIn: '/login' } })
-// export const config = {
-//   matcher: ['/dashboard/:path*', '/products/:path*', '/orders/:path*',
-//             '/enquiries/:path*', '/instagram/:path*', '/upcoming/:path*',
-//             '/newsletter/:path*', '/settings/:path*'],
-// }
+// Protects all CMS admin routes — redirects to login if not authenticated
 
-import { NextResponse } from 'next/server'
-export function middleware() { return NextResponse.next() }
-export const config = { matcher: [] }
+import { withAuth } from 'next-auth/middleware'
+
+export default withAuth({
+  pages: { signIn: '/login' },
+})
+
+export const config = {
+  matcher: [
+    '/(cms)/:path*',
+    '/dashboard/:path*',
+    '/products/:path*',
+    '/orders/:path*',
+    '/enquiries/:path*',
+    '/instagram/:path*',
+    '/upcoming/:path*',
+    '/newsletter/:path*',
+    '/settings/:path*',
+  ],
+}

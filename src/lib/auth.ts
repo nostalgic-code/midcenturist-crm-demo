@@ -1,18 +1,16 @@
 // ─── NextAuth Configuration ───────────────────────────────────────────────────
-// next-auth v4 — credentials provider, single admin user
+// next-auth v4 — credentials provider calling Flask API /admin/login endpoint
+// Stores the Flask JWT token in the NextAuth session for subsequent API calls
 
-import type { NextAuthOptions } from 'next-auth'
+import type { NextAuthOptions, Account } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
-import bcrypt from 'bcryptjs'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://midcenturist-api.onrender.com'
 
 export const authOptions: NextAuthOptions = {
-  session: { strategy: 'jwt' },
-  pages: {
-    signIn: '/login',
-  },
   providers: [
     CredentialsProvider({
-      name: 'Credentials',
+      name: 'credentials',
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
@@ -20,27 +18,51 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        const adminEmail    = process.env.ADMIN_EMAIL
-        const adminPassword = process.env.ADMIN_PASSWORD // bcrypt hash
+        try {
+          const res = await fetch(`${API_URL}/api/admin/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password,
+            }),
+          })
 
-        if (!adminEmail || !adminPassword) return null
-        if (credentials.email !== adminEmail) return null
+          if (!res.ok) return null
 
-        const valid = await bcrypt.compare(credentials.password, adminPassword)
-        if (!valid) return null
-
-        return { id: '1', email: adminEmail, name: 'Admin' }
+          const data = await res.json()
+          // Return user object with the Flask JWT token attached
+          return {
+            id: credentials.email,
+            email: credentials.email,
+            // Store the Flask JWT token (will be passed to callbacks)
+            apiToken: data.token,
+          } as any
+        } catch {
+          return null
+        }
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) token.email = user.email
+    async jwt({ token, user, account }) {
+      // On first login, store the Flask JWT in the token
+      if (user && (user as any).apiToken) {
+        token.apiToken = (user as any).apiToken
+      }
       return token
     },
     async session({ session, token }) {
-      if (session.user) session.user.email = token.email as string
+      // Expose the Flask JWT to the session (accessible in client & server components)
+      ;(session as any).apiToken = token.apiToken
       return session
     },
+  },
+  pages: {
+    signIn: '/login',
+  },
+  session: {
+    strategy: 'jwt',
+    maxAge: 24 * 60 * 60, // 24 hours — matches Flask token expiry
   },
 }

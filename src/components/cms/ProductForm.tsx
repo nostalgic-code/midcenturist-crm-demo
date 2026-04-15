@@ -1,19 +1,13 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import Image from 'next/image'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCloudArrowUp, faXmark, faGripVertical } from '@fortawesome/free-solid-svg-icons'
+import { adminGetCategories } from '@/lib/api'
 import type { ProductFormData } from '@/types/cms'
-
-const CATEGORIES = [
-  'Seating',
-  'Sideboards & Storage',
-  'Lighting',
-  'Coffee & Side Tables',
-  'Bedroom',
-  'Home Décor',
-]
+import type { Category } from '@/lib/api'
 
 const CONDITIONS = ['Excellent', 'Very Good', 'Good', 'Restored'] as const
 
@@ -38,6 +32,25 @@ function validate(data: Omit<ProductFormData, 'photos'>): FieldErrors {
 }
 
 export default function ProductForm({ initialData, onSubmit, isLoading }: ProductFormProps) {
+  const { data: session } = useSession()
+  const [categories, setCategories] = useState<Category[]>([])
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
+  const [categoriesError, setCategoriesError] = useState<string>('')
+  
+  useEffect(() => {
+    adminGetCategories()
+      .then((res) => {
+        const cats = Array.isArray(res) ? res : res.categories || []
+        setCategories(cats)
+      })
+      .catch((err) => {
+        console.error('Failed to fetch categories:', err)
+        setCategoriesError(err.message)
+        setCategories([])
+      })
+      .finally(() => setCategoriesLoading(false))
+  }, [])
+
   const [form, setForm] = useState<Omit<ProductFormData, 'photos'>>({
     name:            initialData?.name ?? '',
     category:        initialData?.category ?? '',
@@ -107,9 +120,9 @@ export default function ProductForm({ initialData, onSubmit, isLoading }: Produc
 
           <div>
             <label className="mb-1 block text-xs uppercase tracking-widest text-brand-muted">Category *</label>
-            <select className={inputCls('category')} value={form.category} onChange={(e) => set('category', e.target.value)}>
-              <option value="">Select category</option>
-              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            <select className={inputCls('category')} value={form.category} onChange={(e) => set('category', e.target.value)} disabled={categoriesLoading}>
+              <option value="">{categoriesLoading ? 'Loading categories...' : 'Select category'}</option>
+              {categories.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
             </select>
             {errors.category && <p className="mt-1 text-xs text-status-arch">{errors.category}</p>}
           </div>

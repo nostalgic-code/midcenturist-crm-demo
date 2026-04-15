@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import type { Product } from '@/types/cms'
+import { getImageUrl } from '@/lib/api'
+import type { Product } from '@/lib/api'
 
 const STATUS_VARIANT: Record<Product['status'], 'default' | 'secondary' | 'outline' | 'destructive'> = {
   live:     'default',
@@ -47,25 +48,32 @@ export default function ProductTable({ products, onMarkSold, onDelete }: Product
         </TableHeader>
         <TableBody>
           {products.map((product) => {
-            const days   = daysUntilArchive(product.archiveAt)
+            const days   = daysUntilArchive(product.archive_at)
             const isSold = product.status === 'sold'
+            const imageUrl = product.primary_image ? getImageUrl(product.primary_image.url) : null
             return (
               <TableRow key={product.id} className={isSold ? 'opacity-60' : ''}>
                 <TableCell>
                   <div className="relative h-11 w-11 rounded-md overflow-hidden bg-muted">
-                    {product.imageUrl && (
-                      <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
+                    {imageUrl && (
+                      <Image src={imageUrl} alt={product.name} fill className="object-cover" />
                     )}
                   </div>
                 </TableCell>
                 <TableCell className="font-medium">{product.name}</TableCell>
-                <TableCell className="text-muted-foreground">{product.category}</TableCell>
+                <TableCell className="text-muted-foreground">{product.category?.name || 'Uncategorized'}</TableCell>
                 <TableCell>
-                  <span className="font-medium">R{product.price.toLocaleString()}</span>
-                  {product.originalPrice && (
-                    <span className="ml-1.5 text-xs text-muted-foreground line-through">
-                      R{product.originalPrice.toLocaleString()}
-                    </span>
+                  {product.variants && product.variants.length > 0 ? (
+                    <>
+                      <span className="font-medium">R{Math.round(product.variants[0].effective_price).toLocaleString()}</span>
+                      {product.variants[0].sale_price !== null && product.variants[0].on_sale && (
+                        <span className="ml-1.5 text-xs text-muted-foreground line-through">
+                          R{Math.round(product.variants[0].price).toLocaleString()}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No pricing</span>
                   )}
                 </TableCell>
                 <TableCell>
