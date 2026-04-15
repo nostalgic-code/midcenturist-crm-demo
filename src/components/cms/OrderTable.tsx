@@ -13,12 +13,14 @@ import type { Order } from '@/lib/api'
 const STATUS_VARIANT: Record<Order['status'], 'default' | 'secondary' | 'outline' | 'destructive'> = {
   pending:   'secondary',
   confirmed: 'outline',
+  paid:      'outline',
   shipped:   'default',
   collected: 'default',
+  delivered: 'default',
   cancelled: 'destructive',
 }
 
-const ORDER_STATUSES: Order['status'][] = ['pending', 'confirmed', 'shipped', 'collected', 'cancelled']
+const ORDER_STATUSES: Order['status'][] = ['pending', 'confirmed', 'paid', 'shipped', 'collected', 'delivered', 'cancelled']
 
 interface OrderTableProps {
   orders: Order[]
