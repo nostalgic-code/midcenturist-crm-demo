@@ -21,7 +21,7 @@ export default function NewsletterPage() {
     if (!token) return
     setLoading(true)
     try {
-      const res = await getSubscribers(token, { search, area, status })
+      const res = await getSubscribers(token, { search, area, status: status as 'active' | 'inactive' | undefined })
       setSubscribers(res.subscribers)
     } catch {
       /* noop */
@@ -43,7 +43,7 @@ export default function NewsletterPage() {
     URL.revokeObjectURL(url)
   }
 
-  const active = subscribers.filter((s) => s.status === 'active').length
+  const active = subscribers.filter((s) => s.is_active).length
 
   return (
     <div className="space-y-5">
@@ -80,7 +80,7 @@ export default function NewsletterPage() {
         >
           <option value="">All</option>
           <option value="active">Active</option>
-          <option value="unsubscribed">Unsubscribed</option>
+          <option value="inactive">Inactive</option>
         </select>
 
         <button

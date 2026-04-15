@@ -69,7 +69,7 @@ export default function UpcomingPage() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-brand-muted">{items.length} upcoming item{items.length !== 1 ? 's' : ''}</p>
+        <p className="text-sm text-brand-muted">{items?.length ?? 0} upcoming item{items?.length !== 1 ? 's' : ''}</p>
         <button
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 rounded bg-brand-black px-4 py-2 text-sm font-medium text-white hover:bg-brand-black/80 transition-colors"

@@ -432,8 +432,9 @@ export async function subscribeToNewsletter(payload: {
   last_name?: string
   phone?: string
   area?: string
-}): Promise<Subscriber> {
-  const res = await fetch(`${BASE_URL}/api/subscribers`, {
+  source?: string
+}): Promise<{ message: string }> {
+  const res = await fetch(`${BASE_URL}/api/newsletter/subscribe`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -484,15 +485,17 @@ export async function adminApproveReview(
 export async function adminGetSubscribers(
   token: string,
   params?: {
-    status?: 'active' | 'unsubscribed'
+    status?: 'active' | 'inactive'
     search?: string
     page?: number
+    limit?: number
   }
-): Promise<{ subscribers: Subscriber[]; total: number }> {
+): Promise<{ subscribers: Subscriber[]; total: number; page: number; limit: number }> {
   const q = new URLSearchParams()
   if (params?.status) q.set('status', params.status)
   if (params?.search) q.set('search', params.search)
   if (params?.page) q.set('page', String(params.page))
+  if (params?.limit) q.set('limit', String(params.limit))
   return adminFetch(`/api/admin/subscribers?${q}`, token)
 }
 
@@ -654,7 +657,7 @@ export async function getSubscribers(
 ): Promise<{ subscribers: Subscriber[]; total: number }> {
   if (!token) return { subscribers: [], total: 0 }
   return adminGetSubscribers(token, {
-    status: params?.status as 'active' | 'unsubscribed' | undefined,
+    status: params?.status as 'active' | 'inactive' | undefined,
     search: params?.search,
     page: params?.page,
   })
@@ -672,8 +675,12 @@ export async function exportSubscribersCSV(token?: string): Promise<Blob> {
 // Upcoming
 export async function getUpcoming(token?: string): Promise<UpcomingItem[]> {
   if (!token) return []
-  const result = await adminGetUpcoming(token)
-  return result.items
+  try {
+    const result = await adminGetUpcoming(token)
+    return (result && result.items) || []
+  } catch {
+    return []
+  }
 }
 
 export async function createUpcoming(
