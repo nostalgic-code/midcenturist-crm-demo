@@ -21,7 +21,7 @@ export default function NewsletterTable({ subscribers }: NewsletterTableProps) {
           {subscribers.map((sub) => (
             <tr
               key={sub.id}
-              className={`border-b border-brand-rule last:border-0 ${sub.status === 'unsubscribed' ? 'opacity-50' : ''}`}
+              className={`border-b border-brand-rule last:border-0 ${!sub.is_active ? 'opacity-50' : ''}`}
             >
               <td className="px-4 py-3 font-medium text-brand-black">
                 {sub.first_name} {sub.last_name}

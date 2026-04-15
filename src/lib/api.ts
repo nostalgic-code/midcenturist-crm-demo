@@ -424,7 +424,26 @@ export async function adminUpdateCategory(
     body: JSON.stringify(payload),
   })
 }
+// ─── Newsletter Subscription (Public) ──────────────────────────────────────────
 
+export async function subscribeToNewsletter(payload: {
+  email: string
+  first_name?: string
+  last_name?: string
+  phone?: string
+  area?: string
+}): Promise<Subscriber> {
+  const res = await fetch(`${BASE_URL}/api/subscribers`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}))
+    throw new Error(error.error || `Failed to subscribe: ${res.status}`)
+  }
+  return res.json()
+}
 // ─── Instagram Sync — Admin ───────────────────────────────────────────────────
 
 export async function adminInstagramSync(
