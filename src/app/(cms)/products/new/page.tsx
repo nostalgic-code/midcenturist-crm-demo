@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import ProductForm from '@/components/cms/ProductForm'
 import { adminCreateProduct, adminGetCategories, adminUploadImage } from '@/lib/api'
+import type { ProductStatus } from '@/lib/api'
 import type { ProductFormData } from '@/types/cms'
 
 export default function NewProductPage() {
@@ -36,12 +37,12 @@ export default function NewProductPage() {
         material: data.material,
         year: data.year,
         condition: data.condition,
-        status: action === 'publish' ? 'live' : 'draft',
+        status: (action === 'publish' ? 'live' : 'draft') as ProductStatus,
         badge: data.badge === 'none' ? null : data.badge,
         is_featured: false,
         is_unique: data.isUnique,
-        instagram_post_id: data.instagramPostId || null,
-        instagram_post_url: data.instagramPostUrl || null,
+        instagram_post_id: data.instagramPostId || undefined,
+        instagram_post_url: data.instagramPostUrl || undefined,
         price: data.price,
       }
       
