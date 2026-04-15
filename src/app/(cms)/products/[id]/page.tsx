@@ -48,8 +48,8 @@ export default function EditProductPage() {
         status: (action === 'publish' ? 'live' : 'draft') as ProductStatus,
         badge: data.badge === 'none' ? null : data.badge,
         is_unique: data.isUnique,
-        instagram_post_id: data.instagramPostId || null,
-        instagram_post_url: data.instagramPostUrl || null,
+        instagram_post_id: data.instagramPostId || undefined,
+        instagram_post_url: data.instagramPostUrl || undefined,
       }
       
       // Update product
