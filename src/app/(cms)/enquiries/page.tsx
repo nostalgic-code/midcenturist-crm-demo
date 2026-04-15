@@ -22,7 +22,7 @@ export default function EnquiriesPage() {
 
   useEffect(() => { load() }, [token])
 
-  const handleStatusChange = async (id: string, status: Enquiry['status']) => {
+  const handleStatusChange = async (id: string, status: 'read' | 'replied') => {
     if (!token) return
     await updateEnquiryStatus(token, id, status)
     setEnquiries((prev) => prev.map((e) => (e.id === id ? { ...e, status } : e)))
