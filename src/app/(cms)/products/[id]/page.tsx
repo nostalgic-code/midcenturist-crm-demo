@@ -6,7 +6,7 @@ import { useSession } from 'next-auth/react'
 import ProductForm from '@/components/cms/ProductForm'
 import { adminGetProduct, adminUpdateProduct, adminUploadImage } from '@/lib/api'
 import type { ProductFormData } from '@/types/cms'
-import type { Product } from '@/lib/api'
+import type { Product, ProductStatus } from '@/lib/api'
 
 export default function EditProductPage() {
   const router = useRouter()
@@ -45,7 +45,7 @@ export default function EditProductPage() {
         material: data.material,
         year: data.year,
         condition: data.condition,
-        status: action === 'publish' ? 'live' : 'draft',
+        status: (action === 'publish' ? 'live' : 'draft') as ProductStatus,
         badge: data.badge === 'none' ? null : data.badge,
         is_unique: data.isUnique,
         instagram_post_id: data.instagramPostId || null,
