@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import type { UpcomingItem } from '@/types/cms'
+import type { UpcomingItem } from '@/lib/api'
 
 const STATUSES: { value: UpcomingItem['status']; label: string }[] = [
   { value: 'coming-soon',         label: 'Coming Soon' },
@@ -11,7 +11,7 @@ const STATUSES: { value: UpcomingItem['status']; label: string }[] = [
 ]
 
 interface UpcomingFormProps {
-  onSubmit: (data: Omit<UpcomingItem, 'id' | 'notifyCount' | 'createdAt'>) => Promise<void>
+  onSubmit: (data: Omit<UpcomingItem, 'id' | 'notify_count' | 'created_at' | 'sort_order'>) => Promise<void>
   onClose: () => void
   isLoading?: boolean
 }
@@ -28,8 +28,8 @@ export default function UpcomingForm({ onSubmit, onClose, isLoading }: UpcomingF
     if (!name.trim()) { setError('Name is required'); return }
     await onSubmit({
       name: name.trim(),
-      description: description.trim() || undefined,
-      estimatedPrice: estimatedPrice ? Number(estimatedPrice) : undefined,
+      description: description.trim() || null,
+      estimated_price: estimatedPrice ? Number(estimatedPrice) : null,
       status,
     })
     onClose()
