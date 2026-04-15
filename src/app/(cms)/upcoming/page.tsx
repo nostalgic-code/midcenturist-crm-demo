@@ -42,7 +42,7 @@ export default function UpcomingPage() {
 
   useEffect(() => { load() }, [token])
 
-  const handleCreate = async (data: Omit<UpcomingItem, 'id' | 'notify_count' | 'created_at'>) => {
+  const handleCreate = async (data: Omit<UpcomingItem, 'id' | 'notify_count' | 'sort_order' | 'created_at'>) => {
     if (!token) return
     await createUpcoming(token, data)
     load()
