@@ -12,7 +12,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from '@/components/ui/sheet'
 import { Separator } from '@/components/ui/separator'
-import type { Enquiry } from '@/types/cms'
+import type { Enquiry } from '@/lib/api'
 
 const STATUS_VARIANT: Record<Enquiry['status'], 'default' | 'secondary' | 'outline'> = {
   unread:  'default',
@@ -65,7 +65,7 @@ export default function EnquiryTable({ enquiries, onStatusChange }: EnquiryTable
                   </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
-                  {new Date(enq.createdAt).toLocaleDateString('en-ZA')}
+                  {new Date(enq.created_at).toLocaleDateString('en-ZA')}
                 </TableCell>
                 <TableCell onClick={(e) => e.stopPropagation()}>
                   <Button asChild variant="ghost" size="icon">

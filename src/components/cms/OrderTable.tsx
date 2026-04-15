@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
-import type { Order } from '@/types/cms'
+import type { Order } from '@/lib/api'
 
 const STATUS_VARIANT: Record<Order['status'], 'default' | 'secondary' | 'outline' | 'destructive'> = {
   pending:   'secondary',
@@ -60,21 +60,21 @@ export default function OrderTable({ orders, onStatusChange }: OrderTableProps) 
                 className="cursor-pointer"
                 onClick={() => toggle(order.id)}
               >
-                <TableCell className="font-mono text-xs">{order.orderNumber}</TableCell>
+                <TableCell className="font-mono text-xs">{order.order_number}</TableCell>
                 <TableCell>
-                  <p className="font-medium">{order.customerName}</p>
-                  <p className="text-xs text-muted-foreground">{order.customerEmail}</p>
+                  <p className="font-medium">{order.billing_address.name}</p>
+                  <p className="text-xs text-muted-foreground">{order.billing_address.email}</p>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{order.items.length}</TableCell>
-                <TableCell className="font-medium">R{order.total.toLocaleString()}</TableCell>
-                <TableCell className="capitalize text-muted-foreground">{order.fulfilmentType}</TableCell>
+                <TableCell className="font-medium">R{order.total_amount.toLocaleString()}</TableCell>
+                <TableCell className="capitalize text-muted-foreground">{order.fulfillment_type}</TableCell>
                 <TableCell>
                   <Badge variant={STATUS_VARIANT[order.status]} className="capitalize">
                     {order.status}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">
-                  {new Date(order.createdAt).toLocaleDateString('en-ZA')}
+                  {new Date(order.created_at).toLocaleDateString('en-ZA')}
                 </TableCell>
                 <TableCell>
                   <FontAwesomeIcon

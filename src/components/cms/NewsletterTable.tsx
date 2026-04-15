@@ -1,6 +1,6 @@
 'use client'
 
-import type { Subscriber } from '@/types/cms'
+import type { Subscriber } from '@/lib/api'
 
 interface NewsletterTableProps {
   subscribers: Subscriber[]
@@ -24,21 +24,21 @@ export default function NewsletterTable({ subscribers }: NewsletterTableProps) {
               className={`border-b border-brand-rule last:border-0 ${sub.status === 'unsubscribed' ? 'opacity-50' : ''}`}
             >
               <td className="px-4 py-3 font-medium text-brand-black">
-                {sub.firstName} {sub.lastName}
+                {sub.first_name} {sub.last_name}
               </td>
               <td className="px-4 py-3 text-brand-muted">{sub.email}</td>
               <td className="px-4 py-3 text-brand-muted">{sub.phone ?? '—'}</td>
               <td className="px-4 py-3 text-brand-muted">{sub.area ?? '—'}</td>
               <td className="px-4 py-3 text-brand-muted">
-                {new Date(sub.subscribedAt).toLocaleDateString('en-ZA')}
+                {new Date(sub.subscribed_at).toLocaleDateString('en-ZA')}
               </td>
               <td className="px-4 py-3">
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium capitalize ${
-                  sub.status === 'active'
+                  sub.is_active
                     ? 'bg-green-100 text-status-live'
                     : 'bg-brand-off text-brand-muted'
                 }`}>
-                  {sub.status}
+                  {sub.is_active ? 'active' : 'unsubscribed'}
                 </span>
               </td>
             </tr>
