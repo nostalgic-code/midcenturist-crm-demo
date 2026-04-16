@@ -93,17 +93,17 @@ export default function OrderTable({ orders, onStatusChange }: OrderTableProps) 
                       <div className="space-y-3">
                         <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Items</p>
                         <ul className="space-y-1">
-                          {order.items.map((item) => (
-                            <li key={item.productId} className="flex justify-between text-sm">
-                              <span>{item.productName}</span>
-                              <span className="text-muted-foreground">R{item.price.toLocaleString()}</span>
+                          {order.items.map((item, idx) => (
+                            <li key={idx} className="flex justify-between text-sm">
+                              <span>{(item.product_snapshot?.name as string) ?? 'Product'} {item.quantity > 1 ? `×${item.quantity}` : ''}</span>
+                              <span className="text-muted-foreground">R{item.line_total.toLocaleString()}</span>
                             </li>
                           ))}
                         </ul>
-                        {order.shippingAddress && (
+                        {order.shipping_address && (
                           <div>
                             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-1">Ship to</p>
-                            <p className="text-sm">{order.shippingAddress}</p>
+                            <p className="text-sm">{JSON.stringify(order.shipping_address)}</p>
                           </div>
                         )}
                         {order.notes && (
@@ -129,9 +129,9 @@ export default function OrderTable({ orders, onStatusChange }: OrderTableProps) 
                             </Button>
                           ))}
                         </div>
-                        {order.fulfilmentType === 'shipping' && (
+                        {order.fulfillment_type === 'shipping' && (
                           <p className="rounded-lg bg-yellow-50 border border-yellow-200 p-3 text-xs text-yellow-800">
-                            Shipping request — contact <strong>{order.customerEmail}</strong> with courier quote.
+                            Shipping request — contact <strong>{order.billing_address.email}</strong> with courier quote.
                           </p>
                         )}
                       </div>
