@@ -2,7 +2,26 @@
 // Admin API calls with Bearer token authentication
 // All functions require a Flask JWT token obtained from POST /api/admin/login
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://midcenturist-api.onrender.com'
+const DIRECT_URL = process.env.NEXT_PUBLIC_API_URL || 'https://midcenturist-api.onrender.com'
+
+// On the client, route through Next.js rewrite proxy to avoid CORS;
+// on the server (SSR / RSC), call the Flask API directly.
+function getBaseUrl(): string {
+  if (typeof window !== 'undefined') {
+    // Client-side: use the proxy rewrite (same origin, no CORS)
+    return ''   // paths like /api/proxy/admin/... are relative
+  }
+  return DIRECT_URL
+}
+
+// Map /api/... paths: client uses /api/proxy/..., server uses direct
+function resolveUrl(path: string): string {
+  const base = getBaseUrl()
+  if (base === '' && path.startsWith('/api/')) {
+    return '/api/proxy/' + path.slice(5)   // /api/admin/x → /api/proxy/admin/x
+  }
+  return `${base}${path}`
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -188,7 +207,7 @@ async function adminFetch<T>(
   token: string,
   options?: RequestInit
 ): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const res = await fetch(resolveUrl(path), {
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
@@ -319,7 +338,7 @@ export async function adminUploadImage(
   form.append('file', file)
   if (altText) form.append('alt_text', altText)
 
-  const res = await fetch(`${BASE_URL}/api/admin/products/${productId}/images`, {
+  const res = await fetch(resolveUrl(`/api/admin/products/${productId}/images`), {
     method: 'POST',
     headers: { 
       'Authorization': `Bearer ${token}`,
@@ -347,7 +366,7 @@ export function getImageUrl(imagePath: string | undefined): string {
   // API now returns full absolute URLs
   if (imagePath.startsWith('http')) return imagePath
   // Fallback for older relative URLs (shouldn't happen now)
-  if (imagePath.startsWith('/api/images/')) return `${BASE_URL}${imagePath}`
+  if (imagePath.startsWith('/api/images/')) return `${DIRECT_URL}${imagePath}`
   return imagePath
 }
 
@@ -399,7 +418,7 @@ export async function adminUpdateOrderStatus(
 
 export async function adminGetCategories(): Promise<{ categories: Category[] }> {
   // Public endpoint — no authentication needed
-  const res = await fetch(`${BASE_URL}/api/categories`)
+  const res = await fetch(resolveUrl('/api/categories'))
   if (!res.ok) throw new Error(`Failed to fetch categories: ${res.status}`)
   return res.json()
 }
@@ -434,7 +453,7 @@ export async function subscribeToNewsletter(payload: {
   area?: string
   source?: string
 }): Promise<{ message: string }> {
-  const res = await fetch(`${BASE_URL}/api/newsletter/subscribe`, {
+  const res = await fetch(resolveUrl('/api/newsletter/subscribe'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
@@ -643,7 +662,7 @@ export async function updateOrderStatus(
 
 export async function exportOrdersCSV(token?: string): Promise<Blob> {
   if (!token) throw new Error('No token provided')
-  const res = await fetch(`${BASE_URL}/api/admin/orders/export/csv`, {
+  const res = await fetch(resolveUrl('/api/admin/orders/export/csv'), {
     headers: { 'Authorization': `Bearer ${token}` },
   })
   if (!res.ok) throw new Error('Failed to export orders')
@@ -665,7 +684,7 @@ export async function getSubscribers(
 
 export async function exportSubscribersCSV(token?: string): Promise<Blob> {
   if (!token) throw new Error('No token provided')
-  const res = await fetch(`${BASE_URL}/api/admin/subscribers/export/csv`, {
+  const res = await fetch(resolveUrl('/api/admin/subscribers/export/csv'), {
     headers: { 'Authorization': `Bearer ${token}` },
   })
   if (!res.ok) throw new Error('Failed to export subscribers')

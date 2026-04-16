@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import SessionProvider from '@/app/(cms)/SessionProvider'
 import CMSSidebar from '@/components/cms/Sidebar'
 import CMSTopbar from '@/components/cms/Topbar'
@@ -7,9 +9,10 @@ export const metadata = {
   title: 'Midcenturist SA — Admin',
 }
 
-export default function CMSLayout({ children }: { children: ReactNode }) {
+export default async function CMSLayout({ children }: { children: ReactNode }) {
+  const session = await getServerSession(authOptions)
   return (
-    <SessionProvider session={null}>
+    <SessionProvider session={session}>
       <div className="flex h-screen overflow-hidden bg-muted/30">
         {/* Sidebar - hidden on mobile */}
         <div className="hidden lg:flex">
