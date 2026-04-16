@@ -48,7 +48,7 @@ export default function ProductTable({ products, onMarkSold, onDelete }: Product
         </TableHeader>
         <TableBody>
           {products.map((product) => {
-            const days   = daysUntilArchive(product.archive_at)
+            const days   = daysUntilArchive(product.archive_at ?? undefined)
             const isSold = product.status === 'sold'
             const imageUrl = product.primary_image ? getImageUrl(product.primary_image.url) : null
             return (
